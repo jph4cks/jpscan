@@ -111,7 +111,7 @@ def check_banner(banner):
             if "exploits" in line:
                 line = line.replace("\x1b[01;31m\x1b[K","")
                 line = line.replace("\x1b[m\x1b[K","")
-                finding = (line.strip("\n".strip("\r"))).split("|")
+                finding = line.strip().split("|")
                 findings = [finding[0].strip(" "),finding[1]]
                 exploits.append(findings)
                 #print(findings)
@@ -152,7 +152,7 @@ def nmap_vuln_scan(target_ports):
         nmap = subprocess.Popen(cmd, shell=True, stdout=subprocess.PIPE)
         for line in io.TextIOWrapper(nmap.stdout, encoding="utf-8"):
             if "VULNERA" in line:
-                print(line.strip("\n".strip("\r")))
+                print(line.strip())
     return
 
 
@@ -185,11 +185,11 @@ def nmap_scan(target_ports):
             if "VERSION" in line:
                 location = line.index("VERSION") #this recalculates the location of the banner in nmap's output
             if "Discovered" in line:
-                #print(line.strip("\n".strip("\r")))
+                #print(line.strip())
                 pass
             elif "open" in line:
                 if any(c in line for c in arr):
-                    print(line.strip("\n".strip("\r")))
+                    print(line.strip())
                     tmp = line.split(' ')
                     port = (tmp[0].split("/"))[0]
                     prot = (tmp[0].split("/"))[1]
@@ -259,7 +259,7 @@ def masscan(target_ip,port_range,rate,interface,wait,ipv6):
                 output[ip]={}
                 output[ip][prot] = []
                 output[ip][prot].append(port)
-            print(line.strip("\n".strip("\r")))
+            print(line.strip())
     print("[+] {} TCP Ports found".format(count))
     print("--------------------------------------------")
     if not ipv6:
@@ -291,7 +291,7 @@ def masscan(target_ip,port_range,rate,interface,wait,ipv6):
                 output[ip]={}
                 output[ip][prot] = []
                 output[ip][prot].append(port)
-            print(line.strip("\n".strip("\r")))
+            print(line.strip())
     print("[+] {} UDP Ports found".format(count))
     return output
 
