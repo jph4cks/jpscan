@@ -7,7 +7,6 @@ import logging
 import pprint
 
 ## TODO
-## 2.- Add Nikto and Gobuster to any HTTP service
 ## 4.- EyeWitness
 ## 6.- if IKEVPN ikescan
 ## 7.- default creds on SSH and FTP using Hydra and rockyou
@@ -123,8 +122,22 @@ def check_banner(banner):
     return ["Not found"]
 
 
-def website_bruteforce(target):
-    print("try)")
+def website_bruteforce(ip, port):
+    scheme = "https" if port in ["443", "8443", "9443"] else "http"
+    url = f"{scheme}://{ip}:{port}"
+    print(f"[+] Starting Nikto scan against {url}")
+    nikto_cmd = f"nikto -host {url} -output {ip}_{port}_nikto.txt"
+    nikto = subprocess.Popen(nikto_cmd, shell=True, stdout=subprocess.PIPE)
+    for line in io.TextIOWrapper(nikto.stdout, encoding="utf-8"):
+        print(line.strip())
+    wordlist = "/usr/share/wordlists/dirb/common.txt"
+    print(f"[+] Starting Gobuster scan against {url}")
+    gobuster_cmd = (
+        f"gobuster dir -u {url} -w {wordlist} -o {ip}_{port}_gobuster.txt"
+    )
+    gobuster = subprocess.Popen(gobuster_cmd, shell=True, stdout=subprocess.PIPE)
+    for line in io.TextIOWrapper(gobuster.stdout, encoding="utf-8"):
+        print(line.strip())
     return
 
 def nmap_vuln_scan(target_ports):
@@ -200,6 +213,8 @@ def nmap_scan(target_ports):
                     else:
                         #exploits = check_banner(banner)
                         exploits = ""
+                    if 'http' in banner.lower():
+                        website_bruteforce(ip, port)
                     if ip in output:
                         if prot in output[ip]:
                             output[ip][prot].append([port,banner,exploits])
