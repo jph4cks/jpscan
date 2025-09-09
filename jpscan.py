@@ -7,7 +7,6 @@ import logging
 import pprint
 
 ## TODO
-## 2.- Add Nikto and Gobuster to any HTTP service
 ## 4.- EyeWitness
 ## 6.- if IKEVPN ikescan
 ## 7.- default creds on SSH and FTP using Hydra and rockyou
@@ -123,8 +122,19 @@ def check_banner(banner):
     return ["Not found"]
 
 
-def website_bruteforce(target):
-    print("try)")
+def website_bruteforce(target, port, use_https=False):
+    url = f"{'https' if use_https else 'http'}://{target}:{port}"
+    print(f"[+] Running nikto scan on {url}")
+    try:
+        subprocess.run(["nikto", "-host", url])
+    except FileNotFoundError:
+        print("[-] nikto not installed, skipping")
+    print(f"[+] Running gobuster dir scan on {url}")
+    wordlist = "/usr/share/wordlists/dirb/common.txt"
+    try:
+        subprocess.run(["gobuster", "dir", "-u", url, "-w", wordlist])
+    except FileNotFoundError:
+        print("[-] gobuster not installed, skipping")
     return
 
 def nmap_vuln_scan(target_ports):
@@ -200,6 +210,8 @@ def nmap_scan(target_ports):
                     else:
                         #exploits = check_banner(banner)
                         exploits = ""
+                    if "http" in line.lower():
+                        website_bruteforce(ip, port, use_https="https" in line.lower())
                     if ip in output:
                         if prot in output[ip]:
                             output[ip][prot].append([port,banner,exploits])
