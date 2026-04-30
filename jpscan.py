@@ -52,6 +52,9 @@ def main():
     for ip in targets:
         ## first run Masscan on all target ports to get list of open ports
         target_ports = masscan(ip,port_range,rate,interface,wait,ipv6)
+        if not target_ports:
+            print(f"[-] No open ports found for {ip}, skipping nmap scans")
+            continue
         ## then run nmap with those custome ports
         output = nmap_scan(target_ports)
         # Run Vulnerablity Scan
@@ -130,23 +133,22 @@ def website_bruteforce(target):
 def nmap_vuln_scan(target_ports):
     output = {}
     for ip in target_ports:
-        ports = []
-        udp_ports = []
-        for port in target_ports[ip]['tcp']:
-            ports.append(port)
+        ports = list(target_ports[ip].get('tcp', []))
+        udp_ports = list(target_ports[ip].get('udp', []))
+        if not ports and not udp_ports:
+            continue
         #print(ports)
         tcpports = ','.join(ports)
         #print("tcp ports: "+tcpports)
-        if len(target_ports[ip])>1:
+        if ports and udp_ports:
             ## this means that there are UDP ports too
-            for port in target_ports[ip]['udp']:
-                udp_ports.append(port)
-            #print(udp_ports)
             udpports = ','.join(udp_ports)
             #print("udp ports: "+udpports)
             cmd = "nmap -sUSVC --script vuln -T4 -pT:{0},U:{2} {1} -Pn -n --open -vvv --min-hostgroup 10 --min-parallelism 100  -oA {1}-vuln-scan".format(tcpports,ip,udpports)
-        else:
+        elif ports:
             cmd = "nmap -sSVC --script vuln -T4 -pT:{0} {1} -Pn -n --open -vvv --min-hostgroup 10 --min-parallelism 100  -oA {1}-vuln-scan".format(",".join(ports),ip)
+        else:
+            cmd = "nmap -sUSVC --script vuln -T4 -pU:{0} {1} -Pn -n --open -vvv --min-hostgroup 10 --min-parallelism 100  -oA {1}-vuln-scan".format(",".join(udp_ports),ip)
         print("--------------------------------------------")
         print("[+] Executing: "+cmd)
         nmap = subprocess.Popen(cmd, shell=True, stdout=subprocess.PIPE)
@@ -161,23 +163,22 @@ def nmap_scan(target_ports):
     arr = ['udp','tcp']
     location = 55 #aprox default location of version
     for ip in target_ports:
-        ports = []
-        udp_ports = []
-        for port in target_ports[ip]['tcp']:
-            ports.append(port)
+        ports = list(target_ports[ip].get('tcp', []))
+        udp_ports = list(target_ports[ip].get('udp', []))
+        if not ports and not udp_ports:
+            continue
         #print(ports)
         tcpports = ','.join(ports)
         #print("tcp ports: "+tcpports)
-        if len(target_ports[ip])>1:
+        if ports and udp_ports:
             ## this means that there are UDP ports too
-            for port in target_ports[ip]['udp']:
-                udp_ports.append(port)
-            #print(udp_ports)
             udpports = ','.join(udp_ports)
             #print("udp ports: "+udpports)
             cmd = "nmap -A -sU -T4 -pT:{0},U:{2} {1} -Pn -n --open -vvv --min-hostgroup 10 --min-parallelism 100 -oA {1}-full-scan".format(tcpports,ip,udpports)
-        else:
+        elif ports:
             cmd = "nmap -A -T4 -pT:{0} {1} -Pn -n --open -vvv --min-hostgroup 10 --min-parallelism 100 -oA {1}-full-scan".format(",".join(ports),ip)
+        else:
+            cmd = "nmap -A -sU -T4 -pU:{0} {1} -Pn -n --open -vvv --min-hostgroup 10 --min-parallelism 100 -oA {1}-full-scan".format(",".join(udp_ports),ip)
         print("--------------------------------------------")
         print("[+] Executing: "+cmd)
         nmap = subprocess.Popen(cmd, shell=True, stdout=subprocess.PIPE)
@@ -215,7 +216,7 @@ def nmap_scan(target_ports):
 
 def get_mac(IP):
     try:
-        ping = Popen(["ping","-c 1", IP], stdout=PIPE)
+        ping = Popen(["ping", "-c", "1", IP], stdout=PIPE)
         time.sleep(.500)
         pid = Popen(["arp", "-n", IP], stdout=PIPE)
         s = str(pid.communicate()[0])
